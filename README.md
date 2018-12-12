@@ -31,3 +31,7 @@ To get your Now Playing from Last.fm, just mention the bot with no arguments, li
     @<bot name>
 
 This gives a rich card to what song is currently playing.
+
+You can also get a 3x3 chart of your top albums of the week with the following command
+
+    @<bot name> chart
