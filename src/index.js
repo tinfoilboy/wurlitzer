@@ -76,9 +76,17 @@ function handleCommand(message) {
 
     // if the bot is just mentioned, grab the now playing
     if (args.length == 0)
+    {
         getLastFMPlaying(message);
-    else if (args.length == 2 && args[0] == 'set' && args[1] == 'username')
+    }
+    else if (
+        args.length == 3 &&
+        args[0] == 'set' &&
+        args[1] == 'username'
+    )
+    {
         setLastFMUsername(message, args[2]);
+    }
 }
 
 client.on('ready', () => {
