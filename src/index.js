@@ -5,6 +5,7 @@ const client  = new Discord.Client();
 const sqlite  = require('sqlite');
 let   dbOpen  = sqlite.open('./db.sqlite3', { Promise });
 const request = require('request-promise-native');
+const { createCanvas, loadImage } = require('canvas');
 
 const lastFMAPIURL = 'http://ws.audioscrobbler.com/2.0/';
 
@@ -105,6 +106,92 @@ async function getLastFMPlaying(message) {
 }
 
 /**
+ * Gets a 3x3 chart of the user's top 9 albums of the week in a 900x900 image
+ * and sends it as a response if found.
+ */
+async function getLastFMWeekChart(message)
+{
+    // grab the database
+    const db = await dbOpen
+        
+    // try and grab the user association from sqlite
+    try {
+        const associationUser = await db.get("SELECT * FROM discordLastFMUser WHERE discordID = ?", message.member.user.id);
+
+        if (associationUser === undefined) {
+            message.reply('Looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
+
+            return;
+        }
+
+        // set the options for getting the last.fm playing
+        lastFMAPIOptions.qs.method = 'user.gettopalbums';
+        lastFMAPIOptions.qs.user   = associationUser.lastFMUsername;
+
+        const result = await request(lastFMAPIOptions);
+
+        // don't have enough albums to make a 3x3
+        if (result.topalbums.album.length < 9)
+            return;
+
+        // create a canvas to draw the 3x3
+        const canvas = createCanvas(900, 900)
+        const ctx    = canvas.getContext('2d')
+
+        let xOff = 0;
+        let yOff = 0;
+
+        for (let i = 0; i < 9; i++) {
+            const album    = result.topalbums.album[i];
+            const albumArt = await loadImage(album.image[album.image.length - 1]["#text"]);
+
+            ctx.drawImage(
+                albumArt,
+                xOff,
+                yOff
+            );
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+            ctx.fillRect(
+                xOff,
+                yOff,
+                xOff + 300,
+                yOff + 300
+            );
+
+            ctx.fillStyle = "white";
+            ctx.font = "16px sans-serif";
+            ctx.fillText(
+                album.artist.name,
+                xOff + 24,
+                (yOff + 300) - 24
+            );
+            ctx.fillText(
+                album.name,
+                xOff + 24,
+                (yOff + 300) - 48
+            );
+
+            xOff += 300;
+
+            if (xOff >= 900)
+            {
+                xOff  = 0;
+                yOff += 300;
+            }
+        }
+
+        const stream     = canvas.createPNGStream();
+        const attachment = new Discord.Attachment(stream);
+
+        message.channel.send(`${message.author}'s 3x3 Chart of the Week`, attachment);
+    }
+    catch (e) {
+        return;
+    }
+}
+
+/**
  * Handle a command sent to the wurlitzer bot.
  */
 function handleCommand(message) {
@@ -117,9 +204,11 @@ function handleCommand(message) {
     {
         getLastFMPlaying(message);
     }
+    // if the bot is mentioned with chart, grab a weekly 3x3
+    // for the user and upload it as an image
     else if (args.length === 1 && args[0] === 'chart')
     {
-
+        getLastFMWeekChart(message);
     }
     else if (
         args.length === 3 &&
