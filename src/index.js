@@ -125,6 +125,7 @@ async function getLastFMWeekChart(message)
         // set the options for getting the last.fm playing
         lastFMAPIOptions.qs.method = 'user.gettopalbums';
         lastFMAPIOptions.qs.user   = associationUser.lastFMUsername;
+        lastFMAPIOptions.qs.period = '7day';
 
         const result = await request(lastFMAPIOptions);
 
