@@ -81,26 +81,22 @@ async function getLastFMPlaying(message) {
         
         const firstTrack = result.recenttracks.track[0];
 
-        // check if there is a now playing attribute and if there is
-        // build an embed for this track
-        if (firstTrack.hasOwnProperty('@attr') && firstTrack["@attr"].nowplaying === "true")
-        {
-            const artist = firstTrack.artist["#text"];
-            const title  = firstTrack.name;
+        // return the most recent track as "now playing"
+        const artist = firstTrack.artist["#text"];
+        const title  = firstTrack.name;
 
-            const embed = new Discord.RichEmbed()
-                .setURL(`https://www.last.fm/user/${associationUser.lastFMUsername}`)
-                .setTitle(`Now Playing`)
-                .setColor(0xd51007)
-                .setAuthor(associationUser.lastFMUsername)
-                .addField(`${firstTrack.artist["#text"]} - ${firstTrack.name}`, `From the album "${firstTrack.album["#text"]}"`)
-                .setTimestamp();
+        const embed = new Discord.RichEmbed()
+            .setURL(`https://www.last.fm/user/${associationUser.lastFMUsername}`)
+            .setTitle(`Now Playing`)
+            .setColor(0xd51007)
+            .setAuthor(associationUser.lastFMUsername)
+            .addField(`${firstTrack.artist["#text"]} - ${firstTrack.name}`, `From the album "${firstTrack.album["#text"]}"`)
+            .setTimestamp();
 
-            if (firstTrack.image.length > 0)
-                embed.setThumbnail(firstTrack.image[firstTrack.image.length - 1]["#text"]);
+        if (firstTrack.image.length > 0)
+            embed.setThumbnail(firstTrack.image[firstTrack.image.length - 1]["#text"]);
 
-            message.channel.send({ embed: embed });
-        }
+        message.channel.send({ embed: embed });
     }
     catch (e) {
         return;
@@ -132,10 +128,6 @@ async function getLastFMWeekChart(message)
 
         const result = await request(lastFMAPIOptions);
 
-        // don't have enough albums to make a 3x3
-        if (result.topalbums.album.length < 9)
-            return;
-
         // create a canvas to draw the 3x3
         const canvas = createCanvas(900, 900)
         const ctx    = canvas.getContext('2d')
@@ -143,7 +135,20 @@ async function getLastFMWeekChart(message)
         let xOff = 0;
         let yOff = 0;
 
-        for (let i = 0; i < 9; i++) {
+        ctx.fillStyle = "black";
+        ctx.fillRect(
+            0,
+            0,
+            900,
+            900
+        );
+
+        let count = result.topalbums.album.length;
+
+        if (count > 9)
+            count = 9;
+
+        for (let i = 0; i < count; i++) {
             const album    = result.topalbums.album[i];
             const albumArt = await loadImage(album.image[album.image.length - 1]["#text"]);
 
