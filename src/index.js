@@ -63,7 +63,7 @@ async function setLastFMUsername(message, lastFMUsername) {
  * with the Discord message sender.
  */
 async function getLastFMPlaying(message) {
-
+    
 }
 
 /**
