@@ -148,13 +148,16 @@ async function getLastFMWeekChart(message)
 
         for (let i = 0; i < count; i++) {
             const album    = result.topalbums.album[i];
-            const albumArt = await loadImage(album.image[album.image.length - 1]["#text"]);
+            
+            if (album.image[album.image.length - 1]["#text"] !== '') {
+                const albumArt = await loadImage(album.image[album.image.length - 1]["#text"]);
 
-            ctx.drawImage(
-                albumArt,
-                xOff,
-                yOff
-            );
+                ctx.drawImage(
+                    albumArt,
+                    xOff,
+                    yOff
+                );
+            }
 
             ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
             ctx.fillRect(
