@@ -1,6 +1,6 @@
 # wurlitzer
 
-## [If you'd just like to use this bot on your server, click here to invite it.](https://discordapp.com/oauth2/authorize?client_id=521880776740962316&scope=bot&permissions=52224)
+### [If you'd just like to use this bot on your server, click here to invite it.](https://discordapp.com/oauth2/authorize?client_id=521880776740962316&scope=bot&permissions=52224)
 
 A simple Discord bot for grabbing statistics for a Last.fm user.
 Associate your Last.fm account with the bot and make subsequent calls to grab your stats.
