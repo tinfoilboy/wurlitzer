@@ -44,6 +44,9 @@ let lastFMAPIOptions = {
         'api_key': process.env.LAST_FM_API_KEY,
         'format': 'json'
     },
+    headers: {
+        "User-Agent": "wurlitzer discord bot"
+    },
     json: true
 };
 
