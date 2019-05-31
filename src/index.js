@@ -93,8 +93,6 @@ async function getLastFMPlaying(message) {
             return;
         }
 
-	console.log(associationUser);
-
         // set the options for getting the last.fm playing
         lastFMAPIOptions.qs.method = 'user.getrecenttracks';
         lastFMAPIOptions.qs.user   = associationUser.lastFMUsername;
