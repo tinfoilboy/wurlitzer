@@ -225,6 +225,8 @@ async function getChart(message, period) {
         period = "overall";
     else if (period === "week")
         period = "7day";
+    else if (period === "month")
+        period = "1month"
     else if (period === "year")
         period = "12month";
 
@@ -398,10 +400,10 @@ function handleCommand(message) {
     ) {
         const period = (args[1] === undefined) ? "week" : args[1];
 
-        if (period !== "all" && period !== "week" && period !== "year")
+        if (period !== "all" && period !== "week" && period !== "year" && period !== "month")
         {
             message.reply("please use a valid time period for the chart command.");
-            message.channel.send(`The correct periods are "all", "week", or "year".`);
+            message.channel.send(`The correct periods are "all", "week", "month", or "year".`);
         }
         else
             getChart(message, period);
