@@ -96,8 +96,11 @@ async function getPlaying(message) {
             return;
         }
 
+<<<<<<< HEAD
         db.close();
 
+=======
+>>>>>>> 7a0e7efbb4f2aa134ba5a191c75f89b9b0a56976
         // set the options for getting the last.fm playing
         lastFMAPIOptions.qs.method = 'user.getrecenttracks';
         lastFMAPIOptions.qs.user   = user.lastFMUsername;
