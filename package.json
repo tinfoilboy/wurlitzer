@@ -13,12 +13,7 @@
         "better-sqlite3": "5.4.3",
         "dotenv": "6.2.0",
         "request": "2.88.0",
-<<<<<<< HEAD
         "request-promise-native": "1.0.7",
-        "canvas": "2.2.0"
-=======
-        "request-promise-native": "1.0.5",
-        "canvas": "2.5.0"
->>>>>>> 7a0e7efbb4f2aa134ba5a191c75f89b9b0a56976
+        "canvas": "2.6.0"
     }
 }
