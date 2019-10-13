@@ -18,6 +18,9 @@ Take the key from registering the application and place it as well as the secret
     LAST_FM_API_KEY=<your key here>
     LAST_FM_API_SECRET=<your secret here>
 
+Next step is to initialize the database, do this by running the `database.py` file, which will run the commands in the schema.sql file.
+Additionally, if you have a database already from the initial release of wurlitzer, this file will migrate to the new schema for the bot.
+
 Once you are done, just run the script and enjoy the bot!
 
 ## Commands

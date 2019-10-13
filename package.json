@@ -10,10 +10,10 @@
     },
     "dependencies": {
         "discord.js": "11.4.2",
-        "sqlite": "3.0.0",
+        "better-sqlite3": "5.4.3",
         "dotenv": "6.2.0",
         "request": "2.88.0",
-        "request-promise-native": "1.0.5",
+        "request-promise-native": "1.0.7",
         "canvas": "2.2.0"
     }
 }
