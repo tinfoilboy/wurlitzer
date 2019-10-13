@@ -24,31 +24,11 @@
 require('dotenv').config();
 const Database = require('better-sqlite3');
 const User = require('./user');
+const LastFM = require('./last')
 
 const Discord = require('discord.js');
 const client  = new Discord.Client();
-const request = require('request-promise-native');
 const { createCanvas, loadImage } = require('canvas');
-
-const lastFMAPIURL = 'http://ws.audioscrobbler.com/2.0/';
-
-/**
- * A generic set of options for the request library that
- * gets changed based on the bot command sent.
- */
-let lastFMAPIOptions = {
-    url: lastFMAPIURL,
-    qs: {
-        'method': '',
-        'user': '',
-        'api_key': process.env.LAST_FM_API_KEY,
-        'format': 'json'
-    },
-    headers: {
-        "User-Agent": "wurlitzer discord bot"
-    },
-    json: true
-};
 
 /**
  * Handle setting a username to a Discord user.
@@ -56,24 +36,22 @@ let lastFMAPIOptions = {
  * Stores the association in an sqlite3 database.
  */
 async function setLastFMUsername(message, lastFMUsername) {
-    // make sure the user exists by trying to get info first
-    lastFMAPIOptions.qs.method = 'user.getinfo';
-    lastFMAPIOptions.qs.user   = lastFMUsername;
+    // check if user exists
+    const exists = await LastFM.checkUserExists(lastFMUsername);
+    
+    if (!exists) {
+        message.reply(`failed to find Last.fm user named ${lastFMUsername}!`);
 
-    try {
-        const result = await request(lastFMAPIOptions);
+        return;
+    }
 
-        const db = new Database("db.sqlite3");
+    const db = new Database("db.sqlite3");
             
-        User.put(db, message.member.user.id, lastFMUsername);
+    User.put(db, message.member.user.id, lastFMUsername);
 
-        db.close();
+    db.close();
 
-        message.reply(`you've now linked a last.fm account with the name "${lastFMUsername}"!`);
-    }
-    catch (e) {
-        message.reply(`Failed to find Last.fm user named ${lastFMUsername}!`);
-    }
+    message.reply(`you've now linked a last.fm account with the name "${lastFMUsername}"!`);
 }
 
 /**
@@ -85,56 +63,38 @@ async function getPlaying(message) {
     const db = new Database("db.sqlite3");
     
     // try and grab the user association from sqlite
-    try {
-        const user = User.get(db, message.member.user.id);
+    const user = User.get(db, message.member.user.id);
 
-        if (user === undefined) {
-            message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
-
-            db.close();
-
-            return;
-        }
-
-        db.close();
-
-        // set the options for getting the last.fm playing
-        lastFMAPIOptions.qs.method = 'user.getrecenttracks';
-        lastFMAPIOptions.qs.user   = user.lastFMUsername;
-
-        const result = await request(lastFMAPIOptions);
-
-        // make sure track isn't empty and if so find the first one
-        if (result.recenttracks.track.length === 0)
-            return;
-        
-        const firstTrack = result.recenttracks.track[0];
-
-        // return the most recent track as "now playing"
-        const artist = firstTrack.artist["#text"];
-        const title  = firstTrack.name;
-        const album  = firstTrack.album["#text"];
-
-        const embed = new Discord.RichEmbed()
-            .setURL(`https://www.last.fm/user/${user.lastFMUsername}`)
-            .setTitle(`Now Playing`)
-            .setColor(0xd51007)
-            .setAuthor(user.lastFMUsername)
-            .addField(`${artist} - ${title}`, `From the album "${album}"`)
-            .setTimestamp();
-
-        if (firstTrack.image.length > 0)
-            embed.setThumbnail(firstTrack.image[firstTrack.image.length - 1]["#text"]);
-
-        message.channel.send({ embed: embed });
-    }
-    catch (e) {
-        console.error(e);
+    if (user === undefined) {
+        message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
 
         db.close();
 
         return;
     }
+
+    db.close();
+
+    const result = await LastFM.getUserPlaying(user.lastFMUsername);
+    
+    if (result === undefined) {
+        message.reply(`I couldn't seem to find any recent tracks for ${user.lastFMUsername}.`);
+
+        return;
+    }
+
+    const embed = new Discord.RichEmbed()
+        .setURL(`https://www.last.fm/user/${user.lastFMUsername}`)
+        .setTitle(`Now Playing`)
+        .setColor(0xd51007)
+        .setAuthor(user.lastFMUsername)
+        .addField(`${result.artist} - ${result.title}`, `From the album "${result.album}"`)
+        .setTimestamp();
+
+    if (result.image.length > 0)
+        embed.setThumbnail(result.image);
+
+    message.channel.send({ embed: embed });
 }
 
 /**
@@ -231,136 +191,129 @@ async function getChart(message, period) {
         period = "12month";
 
     // try and grab the user association from sqlite
-    try {
-        const user = User.get(db, message.member.user.id);
+    const user = User.get(db, message.member.user.id);
 
-        if (user === undefined) {
-            message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
+    if (user === undefined) {
+        message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
 
-            db.close();
-
-            return;
-        }
-
-        db.close();
-
-        // set the options for getting the last.fm playing
-        lastFMAPIOptions.qs.method = 'user.gettopalbums';
-        lastFMAPIOptions.qs.user   = user.lastFMUsername;
-        lastFMAPIOptions.qs.period = period;
-
-        const result = await request(lastFMAPIOptions);
-
-        // the size of the canvas to draw to, no seperate width and height as it
-        // should always be square, so double up on the values
-        const canvasSize = 900;
-
-        // create a canvas to draw the 3x3
-        const canvas = createCanvas(canvasSize, canvasSize)
-        const ctx    = canvas.getContext('2d')
-
-        let xOff = 0;
-        let yOff = 0;
-
-        // the safe zone for each image before flowing down should be 24
-        const safeZone = 24;
-
-        // the size of each piece of album art, this should always be 300
-        // so that it fits the actual image width and height
-        const albumSize = 300;
-
-        ctx.fillStyle = "black";
-        ctx.fillRect(
-            0,
-            0,
-            canvasSize,
-            canvasSize
-        );
-
-        let count = result.topalbums.album.length;
-
-        if (count > 9)
-            count = 9;
-
-        for (let i = 0; i < count; i++) {
-            const album = result.topalbums.album[i];
-            
-            if (album.image[album.image.length - 1]["#text"] !== '') {
-                const albumArt = await loadImage(album.image[album.image.length - 1]["#text"]);
-
-                ctx.drawImage(
-                    albumArt,
-                    xOff,
-                    yOff
-                );
-            }
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-            ctx.fillRect(
-                xOff,
-                yOff,
-                xOff + albumSize,
-                yOff + albumSize
-            );
-
-            ctx.fillStyle = "white";
-            ctx.font = "18px sans-serif";
-
-            const playText = `${result.topalbums.album[i].playcount} plays`;
-
-            const artistY = (yOff + albumSize) - safeZone;
-            
-            let artistEnd = drawWrappedText(
-                ctx,
-                xOff + safeZone,
-                artistY,
-                safeZone,
-                album.artist.name,
-                albumSize - (safeZone * 2)
-            );
-
-            ctx.fillText(
-                playText,
-                (xOff + albumSize) - safeZone - ctx.measureText(playText).width,
-                (yOff + albumSize) - safeZone
-            );
-
-            // push by an extra safe zone before drawing another text
-            if (artistEnd !== artistY)
-                artistEnd -= safeZone / 4;
-
-            ctx.font = "bold 20px sans-serif";            
-
-            drawWrappedText(
-                ctx,
-                xOff + safeZone,
-                artistEnd - (safeZone),
-                safeZone,
-                album.name,
-                albumSize - (safeZone * 2)
-            );
-
-            xOff += albumSize;
-
-            // if the x offset is going to be greater than the image width,
-            // then move on to the next row
-            if (xOff >= canvasSize)
-            {
-                xOff  = 0;
-                yOff += albumSize;
-            }
-        }
-
-        const stream     = canvas.createPNGStream();
-        const attachment = new Discord.Attachment(stream);
-
-        message.channel.send(`Here's your chart, ${message.author}.`, attachment);
-    }
-    catch (e) {
         db.close();
 
         return;
     }
+
+    db.close();
+
+    const albums = await LastFM.getUserTopAlbums(
+        user.lastFMUsername,
+        period,
+        9
+    );
+
+    if (albums === undefined) {
+        message.reply("I could not seem to get a list of albums for the user in this period.")
+    
+        return;
+    }
+
+    // the size of the canvas to draw to, no seperate width and height as it
+    // should always be square, so double up on the values
+    const canvasSize = 900;
+
+    // create a canvas to draw the 3x3
+    const canvas = createCanvas(canvasSize, canvasSize)
+    const ctx    = canvas.getContext('2d')
+
+    let xOff = 0;
+    let yOff = 0;
+
+    // the safe zone for each image before flowing down should be 24
+    const safeZone = 24;
+
+    // the size of each piece of album art, this should always be 300
+    // so that it fits the actual image width and height
+    const albumSize = 300;
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(
+        0,
+        0,
+        canvasSize,
+        canvasSize
+    );
+
+    for (let i = 0; i < albums.length; i++) {
+        const album = albums[i];
+        
+        if (album.art !== '') {
+            const albumArt = await loadImage(album.art);
+
+            ctx.drawImage(
+                albumArt,
+                xOff,
+                yOff
+            );
+        }
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(
+            xOff,
+            yOff,
+            xOff + albumSize,
+            yOff + albumSize
+        );
+
+        ctx.fillStyle = "white";
+        ctx.font = "18px sans-serif";
+
+        const playText = `${album.playCount} plays`;
+
+        const artistY = (yOff + albumSize) - safeZone;
+        
+        let artistEnd = drawWrappedText(
+            ctx,
+            xOff + safeZone,
+            artistY,
+            safeZone,
+            album.artist,
+            albumSize - (safeZone * 2)
+        );
+
+        ctx.fillText(
+            playText,
+            (xOff + albumSize) - safeZone - ctx.measureText(playText).width,
+            (yOff + albumSize) - safeZone
+        );
+
+        // push by an extra safe zone before drawing another text
+        if (artistEnd !== artistY)
+            artistEnd -= safeZone / 4;
+
+        ctx.font = "bold 20px sans-serif";            
+
+        drawWrappedText(
+            ctx,
+            xOff + safeZone,
+            artistEnd - (safeZone),
+            safeZone,
+            album.name,
+            albumSize - (safeZone * 2)
+        );
+
+        xOff += albumSize;
+
+        // if the x offset is going to be greater than the image width,
+        // then move on to the next row
+        if (xOff >= canvasSize)
+        {
+            xOff  = 0;
+            yOff += albumSize;
+        }
+    }
+
+    const stream     = canvas.createPNGStream();
+    const attachment = new Discord.Attachment(stream);
+
+    message.channel.send(`Here's your chart, ${message.author}.`, attachment);
 }
 
 /**
