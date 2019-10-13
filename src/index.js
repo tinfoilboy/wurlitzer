@@ -304,6 +304,8 @@ async function getChart(message, period) {
             ctx.fillStyle = "white";
             ctx.font = "18px sans-serif";
 
+            const playText = `${result.topalbums.album[i].playcount} plays`;
+
             const artistY = (yOff + albumSize) - safeZone;
             
             let artistEnd = drawWrappedText(
@@ -313,6 +315,12 @@ async function getChart(message, period) {
                 safeZone,
                 album.artist.name,
                 albumSize - (safeZone * 2)
+            );
+
+            ctx.fillText(
+                playText,
+                (xOff + albumSize) - safeZone - ctx.measureText(playText).width,
+                (yOff + albumSize) - safeZone
             );
 
             // push by an extra safe zone before drawing another text
