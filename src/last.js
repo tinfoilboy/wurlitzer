@@ -53,27 +53,37 @@ let lastFMAPIOptions = {
  */
 class LastFM {
     static async checkUserExists(username) {
-        lastFMAPIOptions.qs.method = 'user.getinfo';
-        lastFMAPIOptions.qs.user   = username;
+        lastFMAPIOptions.qs.method  = 'user.getinfo';
+        lastFMAPIOptions.qs.api_key = process.env.LAST_FM_API_KEY;
+        lastFMAPIOptions.qs.user    = username;
+        lastFMAPIOptions.qs.format  = 'json';
 
         try {
             const result = await request(lastFMAPIOptions);
+
+            lastFMAPIOptions.qs = {};
 
             return true;
         }
         catch (e)
         {
+            lastFMAPIOptions.qs = {};
+
             return false;
         }
     }
 
     static async getUserPlaying(username) {
+        // set the options for getting the last.fm playing
+        lastFMAPIOptions.qs.method  = 'user.getrecenttracks';
+        lastFMAPIOptions.qs.api_key = process.env.LAST_FM_API_KEY;
+        lastFMAPIOptions.qs.user    = username;
+        lastFMAPIOptions.qs.format  = 'json';
+        
         try {
-            // set the options for getting the last.fm playing
-            lastFMAPIOptions.qs.method = 'user.getrecenttracks';
-            lastFMAPIOptions.qs.user   = username;
-
             const result = await request(lastFMAPIOptions);
+
+            lastFMAPIOptions.qs = {};
 
             if (result.recenttracks.track.length === 0)
                 return undefined;
@@ -90,17 +100,23 @@ class LastFM {
         catch (e) {
             console.log(e);
 
+            lastFMAPIOptions.qs = {};
+
             return undefined;
         }
     }
 
     static async getUserTopAlbums(username, period, count) {
-        lastFMAPIOptions.qs.method = 'user.gettopalbums';
-        lastFMAPIOptions.qs.user   = username;
-        lastFMAPIOptions.qs.period = period;
+        lastFMAPIOptions.qs.method  = 'user.gettopalbums';
+        lastFMAPIOptions.qs.api_key = process.env.LAST_FM_API_KEY;
+        lastFMAPIOptions.qs.user    = username;
+        lastFMAPIOptions.qs.period  = period;
+        lastFMAPIOptions.qs.format  = 'json';
 
         try {
             const result = await request(lastFMAPIOptions);
+
+            lastFMAPIOptions.qs = {};
 
             const length = result.topalbums.album.length;
 
@@ -115,7 +131,7 @@ class LastFM {
 
                 albums.push({
                     art: album.image[album.image.length - 1]["#text"],
-                    playCount: result.topalbums.album[i].playcount,
+                    playCount: album.playcount,
                     name: album.name,
                     artist: album.artist.name
                 });
@@ -125,6 +141,81 @@ class LastFM {
         }
         catch (e) {
             console.log(e);
+
+            lastFMAPIOptions.qs = {};
+
+            return undefined;
+        }
+    }
+
+    static async getUserTopTracks(username, period, count) {
+        lastFMAPIOptions.qs.method  = 'user.gettoptracks';
+        lastFMAPIOptions.qs.api_key = process.env.LAST_FM_API_KEY;
+        lastFMAPIOptions.qs.user    = username;
+        lastFMAPIOptions.qs.period  = period;
+        lastFMAPIOptions.qs.format  = 'json';
+
+        try {
+            const result = await request(lastFMAPIOptions);
+
+            lastFMAPIOptions.qs = {};
+
+            const length = result.toptracks.track.length;
+
+            if (length <= 0)
+                return undefined;
+
+            let tracks = [];
+
+            for (let i = 0; i < count; i++)
+            {
+                const track = result.toptracks.track[i];
+
+                let art = await this.getTrackArt(track.name, track.artist.name);
+
+                if (art === undefined)
+                    art = track.image[track.image.length - 1]["#text"];
+
+                tracks.push({
+                    art: art,
+                    playCount: track.playcount,
+                    name: track.name,
+                    artist: track.artist.name
+                });
+            }
+
+            return tracks;
+        }
+        catch (e) {
+            console.log(e);
+
+            lastFMAPIOptions.qs = {};
+
+            return undefined;
+        }
+    }
+
+    static async getTrackArt(title, artist) {
+        lastFMAPIOptions.qs.method      = 'track.getinfo';
+        lastFMAPIOptions.qs.api_key     = process.env.LAST_FM_API_KEY;
+        lastFMAPIOptions.qs.artist      = artist;
+        lastFMAPIOptions.qs.track       = title;
+        lastFMAPIOptions.qs.format      = 'json';
+
+        try {
+            const result = await request(lastFMAPIOptions);
+
+            lastFMAPIOptions.qs = {};
+
+            if (result.track.album !== undefined && result.track.album.image !== undefined)
+                return result.track.album.image[result.track.album.image.length - 1]["#text"];
+            else
+                return undefined;
+        }
+        catch (e) {
+            console.log(e);
+
+            lastFMAPIOptions.qs = {};
 
             return undefined;
         }

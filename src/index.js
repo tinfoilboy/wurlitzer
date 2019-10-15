@@ -177,10 +177,12 @@ function drawWrappedText(ctx, x, y, push, text, width) {
 /**
  * Create an image chart for the user based on the timeframe they specify.
  */
-async function getChart(message, period) {
+async function getChart(message, period, type) {
     // grab the database
     const db = new Database("db.sqlite3");
     
+    const readablePeriod = period;
+
     if (period === "all")
         period = "overall";
     else if (period === "week")
@@ -203,14 +205,23 @@ async function getChart(message, period) {
 
     db.close();
 
-    const albums = await LastFM.getUserTopAlbums(
-        user.lastFMUsername,
-        period,
-        9
-    );
+    let items = undefined;
 
-    if (albums === undefined) {
-        message.reply("I could not seem to get a list of albums for the user in this period.")
+    if (type === "track")
+        items = await LastFM.getUserTopTracks(
+            user.lastFMUsername,
+            period,
+            9
+        );
+    else if (type === "album")
+        items = await LastFM.getUserTopAlbums(
+            user.lastFMUsername,
+            period,
+            9
+        );
+
+    if (items === undefined) {
+        message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`)
     
         return;
     }
@@ -229,9 +240,9 @@ async function getChart(message, period) {
     // the safe zone for each image before flowing down should be 24
     const safeZone = 24;
 
-    // the size of each piece of album art, this should always be 300
+    // the size of each piece of art, this should always be 300
     // so that it fits the actual image width and height
-    const albumSize = 300;
+    const itemSize = 300;
 
     ctx.fillStyle = "black";
     ctx.fillRect(
@@ -241,14 +252,14 @@ async function getChart(message, period) {
         canvasSize
     );
 
-    for (let i = 0; i < albums.length; i++) {
-        const album = albums[i];
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         
-        if (album.art !== '') {
-            const albumArt = await loadImage(album.art);
+        if (item.art !== '') {
+            const art = await loadImage(item.art);
 
             ctx.drawImage(
-                albumArt,
+                art,
                 xOff,
                 yOff
             );
@@ -258,62 +269,78 @@ async function getChart(message, period) {
         ctx.fillRect(
             xOff,
             yOff,
-            xOff + albumSize,
-            yOff + albumSize
+            xOff + itemSize,
+            yOff + itemSize
         );
 
         ctx.fillStyle = "white";
         ctx.font = "18px sans-serif";
 
-        const playText = `${album.playCount} plays`;
+        const playText = `${item.playCount} plays`;
 
-        const artistY = (yOff + albumSize) - safeZone;
+        const artistY = (yOff + itemSize) - (safeZone * 2);
         
+        ctx.fillText(
+            playText,
+            xOff + safeZone,
+            (yOff + itemSize) - safeZone
+        );
+
         let artistEnd = drawWrappedText(
             ctx,
             xOff + safeZone,
             artistY,
             safeZone,
-            album.artist,
-            albumSize - (safeZone * 2)
-        );
-
-        ctx.fillText(
-            playText,
-            (xOff + albumSize) - safeZone - ctx.measureText(playText).width,
-            (yOff + albumSize) - safeZone
+            item.artist,
+            itemSize - (safeZone * 2)
         );
 
         // push by an extra safe zone before drawing another text
         if (artistEnd !== artistY)
             artistEnd -= safeZone / 4;
 
-        ctx.font = "bold 20px sans-serif";            
+        ctx.font = "bold 20px sans-serif";
 
         drawWrappedText(
             ctx,
             xOff + safeZone,
             artistEnd - (safeZone),
             safeZone,
-            album.name,
-            albumSize - (safeZone * 2)
+            item.name,
+            itemSize - (safeZone * 2)
         );
 
-        xOff += albumSize;
+        xOff += itemSize;
 
         // if the x offset is going to be greater than the image width,
         // then move on to the next row
         if (xOff >= canvasSize)
         {
             xOff  = 0;
-            yOff += albumSize;
+            yOff += itemSize;
         }
     }
 
     const stream     = canvas.createPNGStream();
     const attachment = new Discord.Attachment(stream);
 
-    message.channel.send(`Here's your chart, ${message.author}.`, attachment);
+    const periodString = (readablePeriod != "all") ? `the ${readablePeriod}` : `all time`;
+
+    message.channel.send(`Here's your top ${type}s of ${periodString}, ${message.author}.`, attachment);
+}
+
+/**
+ * Check if the string passed in is a chart type string.
+ */
+function isChartType(arg) {
+    return arg === "album" || arg === "track";
+}
+
+/**
+ * Check if the string passed in is a chart period string.
+ */
+function isChartPeriod(arg) {
+    return arg === "all" || arg === "week" || arg === "year" || arg === "month";
 }
 
 /**
@@ -351,15 +378,31 @@ function handleCommand(message) {
         args.length >= 1 &&
         args[0] === 'chart'
     ) {
-        const period = (args[1] === undefined) ? "week" : args[1];
+        let typeIndex   = -1;
+        let periodIndex = -1;
 
-        if (period !== "all" && period !== "week" && period !== "year" && period !== "month")
-        {
-            message.reply("please use a valid time period for the chart command.");
-            message.channel.send(`The correct periods are "all", "week", "month", or "year".`);
+        if (args.length == 2) {
+            if (isChartType(args[1]))
+                typeIndex = 1;
+            else if (isChartPeriod(args[1]))
+                periodIndex = 1;
         }
-        else
-            getChart(message, period);
+        else if (args.length === 3) {
+            if (isChartType(args[1]))
+                typeIndex = 1;
+            else if (isChartPeriod(args[1]))
+                periodIndex = 1;
+
+            if (isChartType(args[2]))
+                typeIndex = 2;
+            else if (isChartPeriod(args[2]))
+                periodIndex = 2;
+        }
+
+        const period = (periodIndex <= -1) ? "week" : args[periodIndex];
+        const type   = (typeIndex <= -1) ? "album" : args[typeIndex];
+
+        getChart(message, period, type);
     }
     else
         message.reply("I'm afraid that command doesn't exist.")
