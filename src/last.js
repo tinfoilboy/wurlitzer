@@ -123,21 +123,24 @@ class LastFM {
             if (length <= 0)
                 return undefined;
 
-            let albums = [];
+            let albums         = [];
+            let totalPlayCount = 0;
 
             for (let i = 0; i < count; i++)
             {
                 const album = result.topalbums.album[i];
 
+                totalPlayCount += parseInt(album.playcount);
+
                 albums.push({
                     art: album.image[album.image.length - 1]["#text"],
-                    playCount: album.playcount,
+                    playCount: parseInt(album.playcount),
                     name: album.name,
                     artist: album.artist.name
                 });
             }
 
-            return albums;
+            return { albums: albums, totalPlayCount: totalPlayCount };
         }
         catch (e) {
             console.log(e);
@@ -165,7 +168,8 @@ class LastFM {
             if (length <= 0)
                 return undefined;
 
-            let tracks = [];
+            let tracks         = [];
+            let totalPlayCount = 0;
 
             for (let i = 0; i < count; i++)
             {
@@ -176,15 +180,17 @@ class LastFM {
                 if (art === undefined)
                     art = track.image[track.image.length - 1]["#text"];
 
+                totalPlayCount += parseInt(track.playcount);
+
                 tracks.push({
                     art: art,
-                    playCount: track.playcount,
+                    playCount: parseInt(track.playcount),
                     name: track.name,
                     artist: track.artist.name
                 });
             }
 
-            return tracks;
+            return { tracks: tracks, totalPlayCount: totalPlayCount };
         }
         catch (e) {
             console.log(e);

@@ -108,7 +108,9 @@ async function getPlaying(message) {
  * push is the amount to push the album text up for beginning lines
  * width is the width to test for breaking text
  */
-function drawWrappedText(ctx, x, y, push, text, width) {
+function drawWrappedText(ctx, x, y, push, text, width, size, style="normal") {
+    ctx.font = `${style} ${size}px sans-serif`;
+    
     const wholeLineWidth = ctx.measureText(text).width;
 
     if (wholeLineWidth <= width)
@@ -205,20 +207,27 @@ async function getChart(message, period, type) {
 
     db.close();
 
-    let items = undefined;
+    let result = undefined;
+    let items  = undefined;
 
-    if (type === "track")
-        items = await LastFM.getUserTopTracks(
+    if (type === "track") {
+        result = await LastFM.getUserTopTracks(
             user.lastFMUsername,
             period,
             9
         );
-    else if (type === "album")
-        items = await LastFM.getUserTopAlbums(
+
+        items = result.tracks;
+    }
+    else if (type === "album") {
+        result = await LastFM.getUserTopAlbums(
             user.lastFMUsername,
             period,
             9
         );
+    
+        items = result.albums;
+    }
 
     if (items === undefined) {
         message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`)
@@ -252,9 +261,7 @@ async function getChart(message, period, type) {
         canvasSize
     );
 
-    for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        
+    for (const item of items) {
         if (item.art !== '') {
             const art = await loadImage(item.art);
 
@@ -274,40 +281,44 @@ async function getChart(message, period, type) {
         );
 
         ctx.fillStyle = "white";
-        ctx.font = "18px sans-serif";
 
-        const playText = `${item.playCount} plays`;
-
-        const artistY = (yOff + itemSize) - (safeZone * 2);
+        const playText   = `${item.playCount} plays`;
+        const playCountY = (yOff + itemSize) - safeZone;
+        const bottomSize = 18.0;
+        const bottomPush = bottomSize * 1.25;
         
-        ctx.fillText(
-            playText,
+        let playCountEnd = drawWrappedText(
+            ctx,
             xOff + safeZone,
-            (yOff + itemSize) - safeZone
+            playCountY,
+            bottomPush,
+            playText,
+            itemSize - (safeZone * 2),
+            bottomSize
         );
 
         let artistEnd = drawWrappedText(
             ctx,
             xOff + safeZone,
-            artistY,
-            safeZone,
+            playCountEnd - bottomPush,
+            bottomPush,
             item.artist,
-            itemSize - (safeZone * 2)
+            itemSize - (safeZone * 2),
+            bottomSize            
         );
 
-        // push by an extra safe zone before drawing another text
-        if (artistEnd !== artistY)
-            artistEnd -= safeZone / 4;
-
-        ctx.font = "bold 20px sans-serif";
+        const topSize = 28.0;
+        const topPush = topSize * 1.15;
 
         drawWrappedText(
             ctx,
             xOff + safeZone,
-            artistEnd - (safeZone),
-            safeZone,
+            artistEnd - bottomPush,
+            topPush,
             item.name,
-            itemSize - (safeZone * 2)
+            itemSize - (safeZone * 2),
+            topSize,
+            "bold"
         );
 
         xOff += itemSize;
