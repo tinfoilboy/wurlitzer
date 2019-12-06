@@ -88,8 +88,7 @@ async function getPlaying(message) {
         .setTitle(`Now Playing`)
         .setColor(0xd51007)
         .setAuthor(user.lastFMUsername)
-        .addField(`${result.artist} - ${result.title}`, `From the album "${result.album}"`)
-        .setTimestamp();
+        .addField(`${result.artist} - ${result.album}`, `${result.title}`);
 
     if (result.image.length > 0)
         embed.setThumbnail(result.image);
@@ -217,6 +216,12 @@ async function getChart(message, period, type) {
             9
         );
 
+        if (result === undefined) {
+            message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
+        
+            return;
+        }
+
         items = result.tracks;
     }
     else if (type === "album") {
@@ -226,13 +231,13 @@ async function getChart(message, period, type) {
             9
         );
     
-        items = result.albums;
-    }
+        if (result === undefined) {
+            message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
+        
+            return;
+        }
 
-    if (items === undefined) {
-        message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`)
-    
-        return;
+        items = result.albums;
     }
 
     // the size of the canvas to draw to, no seperate width and height as it
@@ -287,6 +292,7 @@ async function getChart(message, period, type) {
         const bottomSize = 18.0;
         const bottomPush = bottomSize * 1.25;
         
+        // draw the play count text first at the very bottom
         let playCountEnd = drawWrappedText(
             ctx,
             xOff + safeZone,
@@ -297,6 +303,7 @@ async function getChart(message, period, type) {
             bottomSize
         );
 
+        // draw the artist name text above the play count text
         let artistEnd = drawWrappedText(
             ctx,
             xOff + safeZone,
@@ -307,9 +314,11 @@ async function getChart(message, period, type) {
             bottomSize            
         );
 
+        // calculate size and line push for the track name
         const topSize = 28.0;
         const topPush = topSize * 1.15;
 
+        // draw the actual track/album name above all lines
         drawWrappedText(
             ctx,
             xOff + safeZone,
