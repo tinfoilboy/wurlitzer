@@ -28,7 +28,10 @@ const LastFM = require('./last')
 
 const Discord = require('discord.js');
 const client  = new Discord.Client();
-const { createCanvas, loadImage } = require('canvas');
+const { registerFont, createCanvas, loadImage } = require('canvas');
+
+registerFont('fonts/NotoSans-Light.ttf', { family: 'Noto Sans' });
+registerFont('fonts/NotoSans-Regular.ttf', { family: 'Noto Sans', weight: 'bold' });
 
 /**
  * Handle setting a username to a Discord user.
@@ -36,11 +39,16 @@ const { createCanvas, loadImage } = require('canvas');
  * Stores the association in an sqlite3 database.
  */
 async function setLastFMUsername(message, lastFMUsername) {
+    // show that the bot is working
+    message.channel.startTyping();
+
     // check if user exists
     const exists = await LastFM.checkUserExists(lastFMUsername);
     
     if (!exists) {
         message.reply(`failed to find Last.fm user named ${lastFMUsername}!`);
+
+        message.channel.stopTyping();
 
         return;
     }
@@ -52,6 +60,8 @@ async function setLastFMUsername(message, lastFMUsername) {
     db.close();
 
     message.reply(`you've now linked a last.fm account with the name "${lastFMUsername}"!`);
+
+    message.channel.stopTyping();
 }
 
 /**
@@ -59,6 +69,9 @@ async function setLastFMUsername(message, lastFMUsername) {
  * with the Discord message sender.
  */
 async function getPlaying(message) {
+    // show a typing indicator for feedback
+    message.channel.startTyping();
+
     // grab the database
     const db = new Database("db.sqlite3");
     
@@ -69,6 +82,8 @@ async function getPlaying(message) {
         message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
 
         db.close();
+        
+        message.channel.stopTyping();
 
         return;
     }
@@ -79,6 +94,8 @@ async function getPlaying(message) {
     
     if (result === undefined) {
         message.reply(`I couldn't seem to find any recent tracks for ${user.lastFMUsername}.`);
+
+        message.channel.stopTyping();
 
         return;
     }
@@ -94,6 +111,8 @@ async function getPlaying(message) {
         embed.setThumbnail(result.image);
 
     message.channel.send({ embed: embed });
+
+    message.channel.stopTyping();
 }
 
 /**
@@ -108,8 +127,12 @@ async function getPlaying(message) {
  * width is the width to test for breaking text
  */
 function drawWrappedText(ctx, x, y, push, text, width, size, style="normal") {
-    ctx.font = `${style} ${size}px sans-serif`;
+    ctx.font = `${style} ${size}px Noto Sans`;
     
+    // truncate text to 80 characters to prevent overflow
+    if (text.length > 80)
+        text = text.substr(0, 80) + "...";
+
     const wholeLineWidth = ctx.measureText(text).width;
 
     if (wholeLineWidth <= width)
@@ -179,6 +202,9 @@ function drawWrappedText(ctx, x, y, push, text, width, size, style="normal") {
  * Create an image chart for the user based on the timeframe they specify.
  */
 async function getChart(message, period, type) {
+    // show that the bot is actively working
+    message.channel.startTyping();
+
     // grab the database
     const db = new Database("db.sqlite3");
     
@@ -201,6 +227,8 @@ async function getChart(message, period, type) {
 
         db.close();
 
+        message.channel.stopTyping();
+
         return;
     }
 
@@ -219,6 +247,8 @@ async function getChart(message, period, type) {
         if (result === undefined) {
             message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
         
+            message.channel.stopTyping();
+
             return;
         }
 
@@ -234,6 +264,8 @@ async function getChart(message, period, type) {
         if (result === undefined) {
             message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
         
+            message.channel.stopTyping();
+
             return;
         }
 
@@ -347,6 +379,8 @@ async function getChart(message, period, type) {
     const periodString = (readablePeriod != "all") ? `the ${readablePeriod}` : `all time`;
 
     message.channel.send(`Here's your top ${type}s of ${periodString}, ${message.author}.`, attachment);
+
+    message.channel.stopTyping();
 }
 
 /**
