@@ -24,7 +24,8 @@
 require('dotenv').config();
 const Database = require('better-sqlite3');
 const User = require('./user');
-const LastFM = require('./last')
+const LastFM = require('./last');
+const iconv   = require('iconv-lite');
 
 const Discord = require('discord.js');
 const client  = new Discord.Client();
@@ -105,7 +106,7 @@ async function getPlaying(message) {
         .setTitle(`Now Playing`)
         .setColor(0xd51007)
         .setAuthor(user.lastFMUsername)
-        .addField(`${result.artist} - ${result.album}`, `${result.title}`);
+        .addField(`${iconv.decode(result.artist, 'utf16')} - ${iconv.decode(result.album, 'utf16')}`, `${iconv.decode(result.title, 'utf16')}`);
 
     if (result.image.length > 0)
         embed.setThumbnail(result.image);
@@ -341,7 +342,7 @@ async function getChart(message, period, type) {
             xOff + safeZone,
             playCountEnd - bottomPush,
             bottomPush,
-            item.artist,
+            iconv.decode(item.artist, 'utf16'),
             itemSize - (safeZone * 2),
             bottomSize            
         );
@@ -356,7 +357,7 @@ async function getChart(message, period, type) {
             xOff + safeZone,
             artistEnd - bottomPush,
             topPush,
-            item.name,
+            iconv.decode(item.name, 'utf16'),
             itemSize - (safeZone * 2),
             topSize,
             "bold"
