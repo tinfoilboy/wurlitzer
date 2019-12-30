@@ -101,12 +101,21 @@ async function getPlaying(message) {
         return;
     }
 
+    let fieldTitle = `${iconv.decode(result.artist, 'utf16')} - ${iconv.decode(result.album, 'utf16')}`;
+    let fieldContent = `${iconv.decode(result.title, 'utf16')}`;
+
+    if (fieldTitle.length > 256)
+        fieldTitle = fieldTitle.substr(0, 256 - 3) + "...";
+
+    if (fieldContent.length > 256)
+        fieldContent = fieldContent.substr(0, 256 - 3) + "...";
+
     const embed = new Discord.RichEmbed()
         .setURL(`https://www.last.fm/user/${user.lastFMUsername}`)
         .setTitle(`Now Playing`)
         .setColor(0xd51007)
         .setAuthor(user.lastFMUsername)
-        .addField(`${iconv.decode(result.artist, 'utf16')} - ${iconv.decode(result.album, 'utf16')}`, `${iconv.decode(result.title, 'utf16')}`);
+        .addField(fieldTitle, fieldContent);
 
     if (result.image.length > 0)
         embed.setThumbnail(result.image);
