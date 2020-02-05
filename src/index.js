@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2019 Maxwell Flynn
+ * Copyright (c) 2020 Maxwell Flynn
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,16 +22,17 @@
  * SOFTWARE.
  */
 require('dotenv').config();
+
 const Database = require('better-sqlite3');
-const User = require('./user');
-const LastFM = require('./last');
-const iconv   = require('iconv-lite');
+const User     = require('./user');
+const LastFM   = require('./last');
 
 const Discord = require('discord.js');
 const client  = new Discord.Client();
+
 const { registerFont, createCanvas, loadImage } = require('canvas');
 
-registerFont('fonts/NotoSans-Light.ttf', { family: 'Noto Sans' });
+registerFont('fonts/NotoSans-Light.ttf',   { family: 'Noto Sans' });
 registerFont('fonts/NotoSans-Regular.ttf', { family: 'Noto Sans', weight: 'bold' });
 
 /**
@@ -56,7 +57,11 @@ async function setLastFMUsername(message, lastFMUsername) {
 
     const db = new Database("db.sqlite3");
             
-    User.put(db, message.member.user.id, lastFMUsername);
+    User.put(
+        db,
+        message.member.user.id,
+        lastFMUsername
+    );
 
     db.close();
 
@@ -101,8 +106,8 @@ async function getPlaying(message) {
         return;
     }
 
-    let fieldTitle = `${iconv.decode(result.artist, 'utf16')} - ${iconv.decode(result.album, 'utf16')}`;
-    let fieldContent = `${iconv.decode(result.title, 'utf16')}`;
+    let fieldTitle = `${result.artist} - ${result.album}`;
+    let fieldContent = `${result.title}`;
 
     if (fieldTitle.length > 256)
         fieldTitle = fieldTitle.substr(0, 256 - 3) + "...";
@@ -351,7 +356,7 @@ async function getChart(message, period, type) {
             xOff + safeZone,
             playCountEnd - bottomPush,
             bottomPush,
-            iconv.decode(item.artist, 'utf16'),
+            item.artist,
             itemSize - (safeZone * 2),
             bottomSize            
         );
@@ -366,7 +371,7 @@ async function getChart(message, period, type) {
             xOff + safeZone,
             artistEnd - bottomPush,
             topPush,
-            iconv.decode(item.name, 'utf16'),
+            item.name,
             itemSize - (safeZone * 2),
             topSize,
             "bold"

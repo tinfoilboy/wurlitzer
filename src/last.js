@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2019 Maxwell Flynn
+ * Copyright (c) 2020 Maxwell Flynn
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 const request = require('request-promise-native');
-const iconv   = require('iconv-lite');
 
 /**
  * The URL for the Last.fm API.
@@ -92,9 +91,9 @@ class LastFM {
             const first = result.recenttracks.track[0];
 
             return {
-                artist: iconv.encode(first.artist['#text'], 'utf16'),
-                title:  iconv.encode(first.name, 'utf16'),
-                album:  iconv.encode(first.album['#text'], 'utf16'),
+                artist: first.artist['#text'],
+                title:  first.name,
+                album:  first.album['#text'],
                 image:  first.image[first.image.length - 1]['#text']
             }
         }
@@ -136,8 +135,8 @@ class LastFM {
                 albums.push({
                     art: album.image[album.image.length - 1]["#text"],
                     playCount: parseInt(album.playcount),
-                    name: iconv.encode(album.name, 'utf16'),
-                    artist: iconv.encode(album.artist.name, 'utf16')
+                    name: album.name,
+                    artist: album.artist.name
                 });
             }
 
@@ -186,8 +185,8 @@ class LastFM {
                 tracks.push({
                     art: art,
                     playCount: parseInt(track.playcount),
-                    name: iconv.encode(track.name, 'utf16'),
-                    artist: iconv.encode(track.artist.name, 'utf16')
+                    name: track.name,
+                    artist: track.artist.name
                 });
             }
 

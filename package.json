@@ -1,6 +1,6 @@
 {
     "name": "wurlitzer",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "A Discord bot for grabbing a user's last.fm stats.",
     "author": "Maxwell Flynn <me@maxwellflynn.com>",
     "license": "MIT",
@@ -14,7 +14,6 @@
         "dotenv": "8.1.0",
         "request": "2.88.0",
         "request-promise-native": "1.0.7",
-        "canvas": "2.6.1",
-        "iconv-lite": "0.5.0"
+        "canvas": "2.6.1"
     }
 }
