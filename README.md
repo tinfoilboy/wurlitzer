@@ -1,3 +1,5 @@
+![wurlitzer icon](images/icon.png)
+
 # wurlitzer
 
 ### [If you'd just like to use this bot on your server, click here to invite it.](https://discordapp.com/oauth2/authorize?client_id=521880776740962316&scope=bot&permissions=52224)
