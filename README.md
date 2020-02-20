@@ -1,6 +1,7 @@
-![wurlitzer icon](images/icon.png)
-
-# wurlitzer
+<p align="center">
+<img width="256" height="256" src="images/icon.png">
+<h1>wurlitzer</h1>
+</p>
 
 ### [If you'd just like to use this bot on your server, click here to invite it.](https://discordapp.com/oauth2/authorize?client_id=521880776740962316&scope=bot&permissions=52224)
 
@@ -42,3 +43,7 @@ This gives a rich card to what song is currently playing.
 You can also get a 3x3 chart of your top albums of the week with the following command
 
     @<bot name> chart
+
+## Other Contributors
+
+[Opalmine](https://twitter.com/OpalmineArt) - Wurlitzer Icon Art
