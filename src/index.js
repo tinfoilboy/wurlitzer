@@ -85,7 +85,7 @@ async function getPlaying(message) {
     const user = User.get(db, message.member.user.id);
 
     if (user === undefined) {
-        message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
+        message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `link` command.');
 
         db.close();
         
@@ -238,7 +238,7 @@ async function getChart(message, period, type) {
     const user = User.get(db, message.member.user.id);
 
     if (user === undefined) {
-        message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `set username` command.');
+        message.reply('looks like you haven\'t linked your Last.fm yet. Do it now by using the `link` command.');
 
         db.close();
 

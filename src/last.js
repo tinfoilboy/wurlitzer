@@ -269,7 +269,7 @@ class LastFM {
 
                 let art = await this._grabSpotifyArt(
                     "track",
-                    track.name
+                    `track.name artist:${track.artist.name}`
                 );
 
                 if (art === null || art === undefined)
