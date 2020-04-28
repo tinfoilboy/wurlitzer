@@ -269,7 +269,7 @@ class LastFM {
 
                 let art = await this._grabSpotifyArt(
                     "track",
-                    `track.name artist:${track.artist.name}`
+                    `${track.name} artist:${track.artist.name}`
                 );
 
                 // try and fall back to artist art if track art cannot be found
