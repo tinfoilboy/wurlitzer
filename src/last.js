@@ -272,6 +272,15 @@ class LastFM {
                     `track.name artist:${track.artist.name}`
                 );
 
+                // try and fall back to artist art if track art cannot be found
+                if (art === null || art === undefined)
+                {
+                    art = await this._grabSpotifyArt(
+                        "artist",
+                        track.artist.name
+                    );
+                }
+
                 if (art === null || art === undefined)
                 {
                     art = await this.getTrackArt(track.name, track.artist.name);
