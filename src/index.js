@@ -286,6 +286,23 @@ async function getChart(message, period, type) {
 
         items = result.albums;
     }
+    else if (type === "artist") {
+        result = await LastFM.getUserTopArtists(
+            user.lastFMUsername,
+            period,
+            9
+        );
+    
+        if (result === undefined) {
+            message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
+        
+            message.channel.stopTyping();
+
+            return;
+        }
+
+        items = result.artists;
+    }
 
     // the size of the canvas to draw to, no seperate width and height as it
     // should always be square, so double up on the values
@@ -317,10 +334,13 @@ async function getChart(message, period, type) {
         if (item.art !== '') {
             const art = await loadImage(item.art);
 
+            // make the image 300px x 300px
             ctx.drawImage(
                 art,
                 xOff,
-                yOff
+                yOff,
+                300,
+                300
             );
         }
 
@@ -351,7 +371,10 @@ async function getChart(message, period, type) {
         );
 
         // draw the artist name text above the play count text
-        let artistEnd = drawWrappedText(
+        //
+        // also, do not draw the artist name if the type of chart is artist
+        // as the artist name will be the main bold name
+        let artistEnd = ((type !== "artist") ? drawWrappedText(
             ctx,
             xOff + safeZone,
             playCountEnd - bottomPush,
@@ -359,7 +382,7 @@ async function getChart(message, period, type) {
             item.artist,
             itemSize - (safeZone * 2),
             bottomSize            
-        );
+        ) : playCountEnd);
 
         // calculate size and line push for the track name
         const topSize = 28.0;
@@ -402,7 +425,7 @@ async function getChart(message, period, type) {
  * Check if the string passed in is a chart type string.
  */
 function isChartType(arg) {
-    return arg === "album" || arg === "track";
+    return arg === "album" || arg === "track" || arg === "artist";
 }
 
 /**
@@ -430,18 +453,17 @@ function handleCommand(message) {
     ) {
         message.reply("looks to me like you need some assistance!");
         message.channel.send("Any command, as you may be able to tell, is used by mentioning me, then specifying the command.");
-        message.channel.send("You'll first want to let me know your last.fm username, this can be done by typing `set username` and then the username you'd like associated.");
+        message.channel.send("You'll first want to let me know your last.fm username, this can be done by typing `link` and then the username you'd like associated.");
         message.channel.send("Once you've done that, you can simply mention me to grab what you're currently playing.");
         message.channel.send("Additionally, you can mention me with the `chart` command to get a 3x3 chart from the current week.")
         message.channel.send("This chart command also takes an extra value afterwards for the period of time for the chart, which can be either `all` for all time, `week` for the default weekly chart, or `month` for a monthly chart.");
         message.channel.send("That's pretty much it, enjoy the bot!");
     }
     else if (
-        args.length === 3 &&
-        args[0] === 'set' &&
-        args[1] === 'username'
+        args.length === 2 &&
+        args[0] === 'link'
     ) {
-        setLastFMUsername(message, args[2]);
+        setLastFMUsername(message, args[1]);
     }
     else if (
         args.length >= 1 &&

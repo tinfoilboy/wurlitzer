@@ -23,6 +23,34 @@
  */
 const request = require('request-promise-native');
 
+let SpotifyClient     = undefined;
+let SpotifyAuthClient = undefined;
+
+// if we actually have a Spotify API key to use, use it!
+if (process.env.SPOTIFY_CLIENT_ID !== undefined) {
+    const SpotifyAPI = require('spotify-web-api-node');
+
+    console.log("Logging into the Spotify API!");
+
+    SpotifyClient = new SpotifyAPI({
+        clientId: process.env.SPOTIFY_CLIENT_ID,
+        clientSecret: process.env.SPOTIFY_CLIENT_SECRET
+    });
+
+    SpotifyAuthClient = () => {
+        SpotifyClient.clientCredentialsGrant().then(
+        data => {
+            SpotifyClient.setAccessToken(data.body['access_token']);
+        },
+        err => {
+            console.error(err);
+        });
+    }
+
+    // grab a spotify access token
+    SpotifyAuthClient();
+}
+
 /**
  * The URL for the Last.fm API.
  */
@@ -130,10 +158,20 @@ class LastFM {
             {
                 const album = result.topalbums.album[i];
 
+                let albumArt = await this._grabSpotifyArt(
+                    "album",
+                    `${album.name} artist:${album.artist.name}`
+                );
+
+                if (albumArt === null || albumArt === undefined)
+                {
+                    albumArt = album.image[album.image.length - 1]["#text"];
+                }
+
                 totalPlayCount += parseInt(album.playcount);
 
                 albums.push({
-                    art: album.image[album.image.length - 1]["#text"],
+                    art: albumArt,
                     playCount: parseInt(album.playcount),
                     name: album.name,
                     artist: album.artist.name
@@ -141,6 +179,60 @@ class LastFM {
             }
 
             return { albums: albums, totalPlayCount: totalPlayCount };
+        }
+        catch (e) {
+            console.log(e);
+
+            lastFMAPIOptions.qs = {};
+
+            return undefined;
+        }
+    }
+
+    static async getUserTopArtists(username, period, count) {
+        lastFMAPIOptions.qs.method  = 'user.gettopartists';
+        lastFMAPIOptions.qs.api_key = process.env.LAST_FM_API_KEY;
+        lastFMAPIOptions.qs.user    = username;
+        lastFMAPIOptions.qs.period  = period;
+        lastFMAPIOptions.qs.format  = 'json';
+
+        try {
+            const result = await request(lastFMAPIOptions);
+
+            lastFMAPIOptions.qs = {};
+
+            const length = result.topartists.artist.length;
+
+            if (length <= 0)
+                return undefined;
+
+            let artists        = [];
+            let totalPlayCount = 0;
+
+            for (let i = 0; i < count; i++)
+            {
+                const artist = result.topartists.artist[i];
+
+                totalPlayCount += parseInt(artist.playcount);
+
+                let artistArt = await this._grabSpotifyArt(
+                    "artist",
+                    artist.name
+                );
+
+                if (artistArt === null || artistArt === undefined)
+                {
+                    artistArt = artist.image[artist.image.length - 1]["#text"];
+                }
+
+                artists.push({
+                    art: artistArt,
+                    playCount: parseInt(artist.playcount),
+                    name: artist.name
+                });
+            }
+
+            return { artists: artists, totalPlayCount: totalPlayCount };
         }
         catch (e) {
             console.log(e);
@@ -175,10 +267,18 @@ class LastFM {
             {
                 const track = result.toptracks.track[i];
 
-                let art = await this.getTrackArt(track.name, track.artist.name);
+                let art = await this._grabSpotifyArt(
+                    "track",
+                    track.name
+                );
 
-                if (art === undefined)
-                    art = track.image[track.image.length - 1]["#text"];
+                if (art === null || art === undefined)
+                {
+                    art = await this.getTrackArt(track.name, track.artist.name);
+
+                    if (art === undefined)
+                        art = track.image[track.image.length - 1]["#text"];
+                }
 
                 totalPlayCount += parseInt(track.playcount);
 
@@ -225,6 +325,84 @@ class LastFM {
 
             return undefined;
         }
+    }
+
+    static async _grabSpotifyArt(type, name) {
+        let artURL = "";
+
+        if (SpotifyClient === undefined) {
+            return null;
+        }
+
+        if (type === "artist") {
+            await SpotifyClient.searchArtists(name).then(
+            data => {
+                if (data.body.artists.items.length <= 0)
+                {
+                    artURL = null;
+
+                    return;
+                }
+
+                // get the mid-sized image as it will fit the chart better
+                artURL = data.body.artists.items[0].images[1].url;
+            },
+            err => {
+                // if authentication failed, retry the grab with new credentials
+                if (err.statusCode === 401) {
+                    SpotifyAuthClient();
+
+                    return this._grabSpotifyArt(type, name);
+                }
+            });
+        }
+        else if (type === "album") {
+            await SpotifyClient.searchAlbums(name).then(
+            data => {
+                if (data.body.albums.items.length <= 0)
+                {
+                    artURL = null;
+
+                    return;
+                }
+
+                // get the mid-sized image as it will fit the chart better
+                artURL = data.body.albums.items[0].images[1].url;
+            },
+            err => {
+                // if authentication failed, retry the grab with new credentials
+                if (err.statusCode === 401) {
+                    SpotifyAuthClient();
+
+                    return this._grabSpotifyArt(type, name);
+                }
+            });
+        }
+        else if (type === "track") {
+            await SpotifyClient.searchTracks(name).then(
+            data => {
+                if (data.body.tracks.items.length <= 0)
+                {
+                    artURL = null;
+
+                    return;
+                }
+
+                // spotify only has art for albums, so just grab the album art
+                // also grab the mid-sized album for better chart fit
+                artURL = data.body.tracks.items[0].album.images[1].url;
+            },
+            err => {
+                // if authentication failed, retry the grab with new credentials
+                if (err.statusCode === 401) {
+                    SpotifyAuthClient();
+
+                    return this._grabSpotifyArt(type, name);
+                }
+            });
+        }
+
+        return artURL;
     }
 }
 
