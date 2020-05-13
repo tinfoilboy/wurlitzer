@@ -363,7 +363,7 @@ class LastFM {
                 if (err.statusCode === 401) {
                     SpotifyAuthClient();
 
-                    return await this._grabSpotifyArt(type, name);
+                    artURL = this._grabSpotifyArt(type, name);
                 }
             });
         }
@@ -385,7 +385,7 @@ class LastFM {
                 if (err.statusCode === 401) {
                     SpotifyAuthClient();
 
-                    return await this._grabSpotifyArt(type, name);
+                    artURL = this._grabSpotifyArt(type, name);
                 }
             });
         }
@@ -408,7 +408,7 @@ class LastFM {
                 if (err.statusCode === 401) {
                     SpotifyAuthClient();
 
-                    return await this._grabSpotifyArt(type, name);
+                    artURL = this._grabSpotifyArt(type, name);
                 }
             });
         }
