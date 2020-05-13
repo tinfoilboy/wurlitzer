@@ -23,6 +23,8 @@
  */
 require('dotenv').config();
 
+const path = require("path");
+
 const Database = require('better-sqlite3');
 const User     = require('./user');
 const LastFM   = require('./last');
@@ -32,8 +34,15 @@ const client  = new Discord.Client();
 
 const { registerFont, createCanvas, loadImage } = require('canvas');
 
-registerFont('fonts/NotoSans-Light.ttf',   { family: 'Noto Sans' });
-registerFont('fonts/NotoSans-Regular.ttf', { family: 'Noto Sans', weight: 'bold' });
+registerFont(
+    path.join(__dirname, '/../fonts/NotoSans-Light.ttf'),
+    { family: 'Noto Sans' }
+);
+
+registerFont(
+    path.join(__dirname, '/../fonts/NotoSans-Regular.ttf'),
+    { family: 'Noto Sans', weight: 'bold' }
+);
 
 /**
  * Handle setting a username to a Discord user.
