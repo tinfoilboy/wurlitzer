@@ -275,8 +275,6 @@ class LastFM {
                 // try and fall back to artist art if track art cannot be found
                 if (art === null || art === undefined)
                 {
-                    console.log(art);
-
                     art = await this._grabSpotifyArt(
                         "artist",
                         track.artist.name
@@ -288,7 +286,9 @@ class LastFM {
                     art = await this.getTrackArt(track.name, track.artist.name);
 
                     if (art === undefined)
+                    {
                         art = track.image[track.image.length - 1]["#text"];
+                    }
                 }
 
                 totalPlayCount += parseInt(track.playcount);
@@ -354,6 +354,14 @@ class LastFM {
 
                     return;
                 }
+                
+                // try a different source if the artist doesn't have images
+                if (data.body.artists.items[0].images.length <= 0)
+                {
+                    artURL = null;
+                    
+                    return;
+                }
 
                 // get the mid-sized image as it will fit the chart better
                 artURL = data.body.artists.items[0].images[1].url;
@@ -377,6 +385,14 @@ class LastFM {
                     return;
                 }
 
+                // try a different source if the album doesn't have images
+                if (data.body.albums.items[0].images.length <= 0)
+                {
+                    artURL = null;
+                    
+                    return;
+                }
+                
                 // get the mid-sized image as it will fit the chart better
                 artURL = data.body.albums.items[0].images[1].url;
             },
@@ -396,6 +412,14 @@ class LastFM {
                 {
                     artURL = null;
 
+                    return;
+                }
+
+                // try a different source if the track doesn't have images
+                if (data.body.tracks.items[0].album.images.length <= 0)
+                {
+                    artURL = null;
+                    
                     return;
                 }
 

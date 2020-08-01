@@ -8,6 +8,9 @@
         "type": "git",
         "url": "git+https://github.com/tinfoilboy/wurlitzer.git"
     },
+    "scripts": {
+        "start": "node src/index.js"
+    },
     "dependencies": {
         "discord.js": "11.5.1",
         "better-sqlite3": "5.4.3",
