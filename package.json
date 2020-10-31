@@ -12,12 +12,12 @@
         "start": "node src/index.js"
     },
     "dependencies": {
-        "discord.js": "11.5.1",
-        "better-sqlite3": "5.4.3",
-        "dotenv": "8.1.0",
-        "request": "2.88.0",
-        "request-promise-native": "1.0.7",
+        "discord.js": "12.4.1",
+        "better-sqlite3": "7.1.1",
+        "dotenv": "8.2.0",
+        "request": "2.88.2",
+        "request-promise-native": "1.0.9",
         "canvas": "2.6.1",
-        "spotify-web-api-node": "4.0.0"
+        "spotify-web-api-node": "5.0.0"
     }
 }

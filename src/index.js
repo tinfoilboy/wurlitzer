@@ -124,7 +124,7 @@ async function getPlaying(message) {
     if (fieldContent.length > 256)
         fieldContent = fieldContent.substr(0, 256 - 3) + "...";
 
-    const embed = new Discord.RichEmbed()
+    const embed = new Discord.MessageEmbed()
         .setURL(`https://www.last.fm/user/${user.lastFMUsername}`)
         .setTitle(`Now Playing`)
         .setColor(0xd51007)
@@ -421,7 +421,7 @@ async function getChart(message, period, type) {
     }
 
     const stream     = canvas.createPNGStream();
-    const attachment = new Discord.Attachment(stream);
+    const attachment = new Discord.MessageAttachment(stream);
 
     const periodString = (readablePeriod != "all") ? `the ${readablePeriod}` : `all time`;
 
@@ -513,7 +513,7 @@ client.on('ready', () => {
 });
 
 client.on('message', message => {
-    if (message.isMentioned(client.user))
+    if (message.mentions.has(client.user))
         handleCommand(message);
 });
 
