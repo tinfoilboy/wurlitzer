@@ -95,9 +95,6 @@ async function getPlaying(message) {
     const result = await LastFM.getUserPlaying(user.lastFMUsername);
     if (result === undefined) {
         message.reply(`I couldn't seem to find any recent tracks for ${user.lastFMUsername}.`);
-
-        message.channel.stopTyping();
-
         return;
     }
 
@@ -313,7 +310,6 @@ async function getChart(message, period, type, size) {
         );
     
         if (result === undefined) {
-            message.channel.stopTyping();
             return;
         }
 
