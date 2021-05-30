@@ -511,8 +511,13 @@ function handleCommand(message) {
         // Longest string of all time, might be worth having an async read of a text file?
         message.reply("looks to me like you need some assistance!\nAny command, as you may be able to tell, is used by mentioning me, then specifying the command.\nYou'll first want to let me know your last.fm username, this can be done by typing `link` and then the username you'd like associated.\nOnce you've done that, you can simply mention me to grab what you're currently playing.\nAdditionally, you can mention me with the `chart` command to get a 3x3 chart from the current week.\nThis chart command also takes an extra value afterwards for the period of time for the chart, which can be either `all` for all time, `week` for the default weekly chart, or `month` for a monthly chart.\nYou can also specify the type of chart you want, either `artist`, `track`, or `album`, by default you get an album chart.\nYou can also create custom sized charts, all the way from 1x1 to 10x10. If you want to make one of these, specify the chart in that format, like `4x4`.\nThat's pretty much it, enjoy the bot!");
     }
-    else if (args.length === 2 && args[0] === 'link') {
-        setLastFMUsername(message, args[1]);
+    else if (args.length >= 2 && args[0] === 'link') {
+        if (args.length < 3) {
+            message.reply(`looks like you only ran \`link\`. Add your Last.fm username at the end of the command to link your Discord with your Last.fm.`);
+        }
+        else {
+            setLastFMUsername(message, args[1]);
+        }
     }
     else if (args.length >= 1 && args[0] === 'chart') {
         let typeIndex   = -1;
@@ -541,6 +546,9 @@ function handleCommand(message) {
     else {
         message.reply("seems the command doesn't exist. Mention me with the command `help` and I can tell you commands and usage!");
     }
+
+    // seems that there's a bug with the typing indicator, just reset at the end of all command handlers
+    message.channel.stopTyping();
 }
 
 client.on('ready', () => {
@@ -548,8 +556,9 @@ client.on('ready', () => {
 });
 
 client.on('message', message => {
-    if (message.mentions.has(client.user))
+    if (message.mentions.has(client.user)) {
         handleCommand(message);
+    }
 });
 
 client.login(process.env.DISCORD_BOT_KEY);
