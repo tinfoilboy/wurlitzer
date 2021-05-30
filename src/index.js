@@ -271,11 +271,9 @@ async function getChart(message, period, type, size) {
 
     db.close();
 
-    let result = undefined;
     let items  = undefined;
-
     if (type === "track") {
-        result = await LastFM.getUserTopTracks(
+        const result = await LastFM.getUserTopTracks(
             user.lastFMUsername,
             period,
             itemCount * itemCount
@@ -289,7 +287,7 @@ async function getChart(message, period, type, size) {
         items = result.tracks;
     }
     else if (type === "album") {
-        result = await LastFM.getUserTopAlbums(
+        const result = await LastFM.getUserTopAlbums(
             user.lastFMUsername,
             period,
             itemCount * itemCount
@@ -303,7 +301,7 @@ async function getChart(message, period, type, size) {
         items = result.albums;
     }
     else if (type === "artist") {
-        result = await LastFM.getUserTopArtists(
+        const result = await LastFM.getUserTopArtists(
             user.lastFMUsername,
             period,
             itemCount * itemCount
@@ -316,24 +314,26 @@ async function getChart(message, period, type, size) {
         items = result.artists;
     }
 
-    // the size of the canvas to draw to, no separate width and height as it
-    // should always be square, so double up on the values
+    // originally this scaled based on the size of the chart, however the image would fail to upload at sizes like 10x10
+    // therefore, the image size will always be 2000x2000 (might be overkill, however high res is good), and the items
+    // themselves will scale to fit the canvas itself.
     const canvasSize = 2000;
 
-    // the size of each piece of art. this is the basis of the canvas size and might grow if we have less items than
-    // we anticipated for the chart size.
+    // the size of each item in the chart. will fit the chart in a grid based on how many items we have.
     let itemSize = canvasSize / itemCount;
 
-    // create a canvas to draw the 3x3
-    const canvas = createCanvas(canvasSize, canvasSize)
-    const ctx    = canvas.getContext('2d')
+    // create a canvas instance and a context to draw to
+    const canvas = createCanvas(canvasSize, canvasSize);
+    const ctx    = canvas.getContext('2d');
 
+    // offsets for the chart items to place them on the canvas
     let xOff = 0;
     let yOff = 0;
 
-    // the safe zone for each image before flowing down should be 24
+    // safe zone that we will not draw anything to (ideally), this is a small area on the border of the item
     const safeZone = itemSize * 0.075;
 
+    // fill the canvas with a black background to start
     ctx.fillStyle = "black";
     ctx.fillRect(
         0,
@@ -342,7 +342,14 @@ async function getChart(message, period, type, size) {
         canvasSize
     );
 
+    // iterate through each item we've received, load the art for that item, draw it to the canvas, then draw the text
+    //
+    // @todo I might be able to convert this to some kind of threaded approach that will construct the item in separate
+    // thread and return another canvas that I can blit to the first canvas. At least that way we can concurrently
+    // construct chart items and load images for those items, might make the chart command a bit faster.
     for (const item of items) {
+        // if we have art associated with this item, then we want to load the image and wait for the result, then draw
+        // that image to the canvas where the item is
         if (item.art !== '') {
             const art = await loadImage(item.art);
 
@@ -355,6 +362,7 @@ async function getChart(message, period, type, size) {
             );
         }
 
+        // draw a semi-transparent black background to render text above for readability
         ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
         ctx.fillRect(
             xOff,
@@ -365,14 +373,20 @@ async function getChart(message, period, type, size) {
 
         ctx.fillStyle = "white";
 
+        // font size for any text on the bottom (play count and artist, typically)
         const baseBottomFontSize = 18.0;
-        const bottomSize = baseBottomFontSize + ((itemSize / itemCount) / (0.5 * baseBottomFontSize));
-        const bottomPush = bottomSize * 1.25;
+        const bottomFontSize = baseBottomFontSize + ((itemSize / itemCount) / (0.5 * baseBottomFontSize));
+        
+        // amount to push any of the bottom text down by when wrapping
+        const bottomPush = bottomFontSize * 1.25;
         const playText   = `${item.playCount} plays`;
+
+        // starting position for where to draw the play count text, should be starting at the bottom of the image above
+        // the safe zone
         const playCountY = (yOff + itemSize) - safeZone;
         
         // draw the play count text first at the very bottom
-        let playCountEnd = drawWrappedText(
+        const playCountEnd = drawWrappedText(
             ctx,
             xOff + safeZone,
             playCountY,
@@ -380,14 +394,12 @@ async function getChart(message, period, type, size) {
             playText,
             itemSize - (safeZone * 2),
             yOff,
-            bottomSize
+            bottomFontSize
         );
 
-        // draw the artist name text above the play count text
-        //
-        // also, do not draw the artist name if the type of chart is artist
-        // as the artist name will be the main bold name
-        let artistEnd = ((type !== "artist") ? drawWrappedText(
+        // if the type of chart item we are drawing is not an artist chart, then we want to draw the artist as part of
+        // the bottom text. otherwise, the artist is going to be the bolded top text, which means we can skip this.
+        const artistEnd = ((type !== "artist") ? drawWrappedText(
             ctx,
             xOff + safeZone,
             playCountEnd - bottomPush,
@@ -395,15 +407,18 @@ async function getChart(message, period, type, size) {
             item.artist,
             itemSize - (safeZone * 2),
             yOff,
-            bottomSize            
+            bottomFontSize            
         ) : playCountEnd);
 
-        // calculate size and line push for the track name
+        // font size for the main text in the chart item
         const baseTopFontSize = 28.0;
-        const topSize = baseTopFontSize + ((itemSize / itemCount) / (baseTopFontSize / 4.0));
-        const topPush = topSize * 1.15;
+        const topFontSize = baseTopFontSize + ((itemSize / itemCount) / (baseTopFontSize / 4.0));
+        
+        // amount to push any wrapped text down by when on the main top line
+        const topPush = topFontSize * 1.15;
 
-        // draw the actual track/album name above all lines
+        // finally, draw the main bold text at the top of all other lines, this will either be the track title, artist
+        // name, or the album title depending on what kind of chart is being constructed
         drawWrappedText(
             ctx,
             xOff + safeZone,
@@ -412,7 +427,7 @@ async function getChart(message, period, type, size) {
             item.name,
             itemSize - (safeZone * 2),
             yOff,
-            topSize,
+            topFontSize,
             "bold"
         );
 
