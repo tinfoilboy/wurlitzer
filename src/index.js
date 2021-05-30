@@ -52,17 +52,11 @@ const INVALID_LINK_TEXT = 'looks like you haven\'t linked your Last.fm yet. Do i
  * Stores the association in an sqlite3 database.
  */
 async function setLastFMUsername(message, lastFMUsername) {
-    // show that the bot is working
-    message.channel.startTyping();
-
     // check if user exists
     const exists = await LastFM.checkUserExists(lastFMUsername);
     
     if (!exists) {
         message.reply(`failed to find Last.fm user named ${lastFMUsername}!`);
-
-        message.channel.stopTyping();
-
         return;
     }
 
@@ -77,8 +71,6 @@ async function setLastFMUsername(message, lastFMUsername) {
     db.close();
 
     message.reply(`you've now linked a last.fm account with the name "${lastFMUsername}"!`);
-
-    message.channel.stopTyping();
 }
 
 /**
@@ -86,9 +78,6 @@ async function setLastFMUsername(message, lastFMUsername) {
  * with the Discord message sender.
  */
 async function getPlaying(message) {
-    // show a typing indicator for feedback
-    message.channel.startTyping();
-
     // grab the database
     const db = new Database("db.sqlite3");
     
@@ -97,11 +86,7 @@ async function getPlaying(message) {
 
     if (user === undefined) {
         message.reply(INVALID_LINK_TEXT);
-
         db.close();
-        
-        message.channel.stopTyping();
-
         return;
     }
 
@@ -138,7 +123,6 @@ async function getPlaying(message) {
     }
 
     message.channel.send({ embed: embed });
-    message.channel.stopTyping();
 }
 
 /**
@@ -239,9 +223,6 @@ function drawWrappedText(ctx, x, y, push, text, width, top, size, style="normal"
  * Create an image chart for the user based on the timeframe they specify.
  */
 async function getChart(message, period, type, size) {
-    // show that the bot is actively working
-    message.channel.startTyping();
-
     // grab the database
     const db = new Database("db.sqlite3");
     const readablePeriod = period;
@@ -267,19 +248,16 @@ async function getChart(message, period, type, size) {
 
     if (chartWidth !== chartHeight) {
         message.reply(`chart width and height in the {width}x{height} format must match!`);
-        message.channel.stopTyping();
         return;
     }
 
     if (chartWidth === 0 || chartHeight === 0) {
         message.reply(`chart size must not be zero!`);
-        message.channel.stopTyping();
         return;
     }
 
     if (chartWidth > 10 || chartHeight > 10) {
         message.reply(`chart size can only go up to 10!`);
-        message.channel.stopTyping();
         return;
     }
 
@@ -291,7 +269,6 @@ async function getChart(message, period, type, size) {
     if (user === undefined) {
         message.reply(INVALID_LINK_TEXT);
         db.close();
-        message.channel.stopTyping();
         return;
     }
 
@@ -309,7 +286,6 @@ async function getChart(message, period, type, size) {
 
         if (result === undefined) {
             message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
-            message.channel.stopTyping();
             return;
         }
 
@@ -324,7 +300,6 @@ async function getChart(message, period, type, size) {
     
         if (result === undefined) {
             message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
-            message.channel.stopTyping();
             return;
         }
 
@@ -338,7 +313,6 @@ async function getChart(message, period, type, size) {
         );
     
         if (result === undefined) {
-            message.reply(`I could not seem to get a list of top ${type}s for the user in this period.`);
             message.channel.stopTyping();
             return;
         }
@@ -462,7 +436,6 @@ async function getChart(message, period, type, size) {
     const periodString = (readablePeriod != "all") ? `the ${readablePeriod}` : `all time`;
 
     message.channel.send(`Here's your top ${type}s of ${periodString}, ${message.author}.`, attachment);
-    message.channel.stopTyping();
 }
 
 /**
@@ -499,8 +472,10 @@ function isChartPeriod(arg) {
  * Handle a command sent to the wurlitzer bot.
  */
 function handleCommand(message) {
-    // grab the args of the message past the first one as that
-    // should always be the mention for the command
+    // show the typing indicator to show that we are doing work
+    message.channel.startTyping();
+
+    // grab the args of the message past the first one as that should always be the bot mention
     const args = message.content.split(' ').slice(1).filter(arg => { return arg.length > 0; });
 
     // if the bot is just mentioned, grab the now playing
@@ -547,7 +522,7 @@ function handleCommand(message) {
         message.reply("seems the command doesn't exist. Mention me with the command `help` and I can tell you commands and usage!");
     }
 
-    // seems that there's a bug with the typing indicator, just reset at the end of all command handlers
+    // we are done processing commands, so reset the typing indicator
     message.channel.stopTyping();
 }
 
