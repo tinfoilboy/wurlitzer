@@ -422,13 +422,15 @@ class Spotify {
         let trackURL = "";
 
         await SpotifyClient.searchTracks(query).then(data => {
-            trackURL = data.body.tracks.items[0].external_urls.spotify;
+            if (data.body.tracks.items.length > 0) {
+                trackURL = data.body.tracks.items[0].external_urls.spotify;
+            }
         }, err => {
             // if authentication failed, retry the grab with new credentials
             if (err.statusCode === 401) {
                 SpotifyAuthClient();
 
-                trackURL = this.getTrackLink(type, name);
+                trackURL = this.getTrackLink(query);
             }
         });
 
