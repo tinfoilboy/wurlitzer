@@ -498,7 +498,7 @@ function handleCommand(message) {
         message.reply("looks to me like you need some assistance!\nAny command, as you may be able to tell, is used by mentioning me, then specifying the command.\nYou'll first want to let me know your last.fm username, this can be done by typing `link` and then the username you'd like associated.\nOnce you've done that, you can simply mention me to grab what you're currently playing.\nAdditionally, you can mention me with the `chart` command to get a 3x3 chart from the current week.\nThis chart command also takes an extra value afterwards for the period of time for the chart, which can be either `all` for all time, `week` for the default weekly chart, or `month` for a monthly chart.\nYou can also specify the type of chart you want, either `artist`, `track`, or `album`, by default you get an album chart.\nYou can also create custom sized charts, all the way from 1x1 to 10x10. If you want to make one of these, specify the chart in that format, like `4x4`.\nThat's pretty much it, enjoy the bot!");
     }
     else if (args.length >= 1 && args[0] === 'link') {
-        if (args.length < 3) {
+        if (args.length < 2) {
             message.reply(`looks like you ran \`link\` without your Last.fm username! Add it to the end of the command to get your Last.fm data!`);
         }
         else {
