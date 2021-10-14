@@ -240,6 +240,12 @@ async function getChart(message, period, type, size) {
     else if (period === "month") {
         period = "1month";
     }
+    else if (period === "quarter") {
+        period = "3month";
+    }
+    else if (period === "half") {
+        period = "6month";
+    }
     else if (period === "year") {
         period = "12month";
     }
@@ -467,7 +473,7 @@ function isChartType(arg) {
  * Check if the string passed in is a chart period string.
  */
 function isChartPeriod(arg) {
-    return arg === "all" || arg === "week" || arg === "year" || arg === "month";
+    return arg === "all" || arg === "week" || arg === "year" || arg === "month" || arg === "quarter" || arg === "half";
 }
 
 /**
@@ -546,7 +552,7 @@ client.on('ready', () => {
 });
 
 client.on('messageCreate', message => {
-    if (message.mentions.has(client.user) && !message.mentions.everyone) {
+    if (message.type !== "REPLY" && (message.mentions.has(client.user) && !message.mentions.everyone)) {
         handleCommand(message);
     }
 });
