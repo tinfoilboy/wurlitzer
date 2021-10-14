@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2020 Maxwell Flynn
+ * Copyright (c) 2021 Maxwell Flynn
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -279,6 +279,8 @@ class LastFM {
 
         for (let i = 0; i < artistArray.length; i++) {
             const artist = artistArray[i];
+
+            console.log(artist);
 
             totalPlayCount += parseInt(artist.playcount);
 
