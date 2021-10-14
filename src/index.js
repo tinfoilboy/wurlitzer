@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2020 Maxwell Flynn
+ * Copyright (c) 2021 Maxwell Flynn
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@ const Database = require('better-sqlite3');
 const User     = require('./user');
 const { LastFM, Spotify }   = require('./api');
 
-const Discord = require('discord.js');
-const client  = new Discord.Client();
+const { Client, Intents, MessageEmbed, MessageAttachment } = require('discord.js');
+const client  = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
 const { registerFont, createCanvas, loadImage } = require('canvas');
 
@@ -109,7 +109,7 @@ async function getPlaying(message) {
         fieldContent = fieldContent.substr(0, 256 - 3) + "...";
     }
 
-    const embed = new Discord.MessageEmbed()
+    const embed = new MessageEmbed()
         .setColor(0xd51007)
         .setAuthor(user.lastFMUsername, await LastFM.getUserAvatarUrl(user.lastFMUsername), `https://www.last.fm/user/${user.lastFMUsername}`)
         .setTitle(fieldTitle)
@@ -119,7 +119,7 @@ async function getPlaying(message) {
         embed.setImage(result.image);
     }
 
-    message.channel.send({ embed: embed });
+    message.reply({ embeds: [embed] });
 }
 
 /**
@@ -214,6 +214,13 @@ function drawWrappedText(ctx, x, y, push, text, width, top, size, style="normal"
     }
 
     return smallestBottom;
+}
+
+/**
+ * Checks whether an offset for an item is within a certain tolerance of the image to see if we have to make a new row.
+ */
+function isItemOutOfBounds(offset, imageSize, tolerance=10) {
+    return offset >= (imageSize - tolerance);
 }
 
 /**
@@ -320,7 +327,7 @@ async function getChart(message, period, type, size) {
     const canvasSize = 2000;
 
     // the size of each item in the chart. will fit the chart in a grid based on how many items we have.
-    let itemSize = canvasSize / itemCount;
+    let itemSize = Math.round(canvasSize / itemCount);
 
     // create a canvas instance and a context to draw to
     const canvas = createCanvas(canvasSize, canvasSize);
@@ -435,7 +442,7 @@ async function getChart(message, period, type, size) {
 
         // if the x offset is going to be greater than the image width,
         // then move on to the next row
-        if (xOff >= canvasSize)
+        if (isItemOutOfBounds(xOff, canvasSize))
         {
             xOff  = 0;
             yOff += itemSize;
@@ -443,10 +450,10 @@ async function getChart(message, period, type, size) {
     }
 
     const stream     = canvas.createPNGStream();
-    const attachment = new Discord.MessageAttachment(stream);
+    const attachment = new MessageAttachment(stream);
     const periodString = (readablePeriod != "all") ? `the ${readablePeriod}` : `all time`;
 
-    message.channel.send(`Here's your top ${type}s of ${periodString}, ${message.author}.`, attachment);
+    message.reply({ content: `Here's your top ${type}s of ${periodString}.`, files: [attachment]});
 }
 
 /**
@@ -484,7 +491,7 @@ function isChartPeriod(arg) {
  */
 function handleCommand(message) {
     // show the typing indicator to show that we are doing work
-    message.channel.startTyping();
+    message.channel.sendTyping();
 
     // grab the args of the message past the first one as that should always be the bot mention
     const args = message.content.split(' ').slice(1).filter(arg => { return arg.length > 0; });
@@ -532,17 +539,14 @@ function handleCommand(message) {
     else {
         message.reply("seems the command doesn't exist. Mention me with the command `help` and I can tell you commands and usage!");
     }
-
-    // we are done processing commands, so reset the typing indicator
-    message.channel.stopTyping();
 }
 
 client.on('ready', () => {
     console.log(`logged in as ${client.user.tag}`);
 });
 
-client.on('message', message => {
-    if (message.mentions.has(client.user)) {
+client.on('messageCreate', message => {
+    if (message.mentions.has(client.user) && !message.mentions.everyone) {
         handleCommand(message);
     }
 });

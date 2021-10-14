@@ -280,6 +280,8 @@ class LastFM {
         for (let i = 0; i < artistArray.length; i++) {
             const artist = artistArray[i];
 
+            console.log(artist);
+
             totalPlayCount += parseInt(artist.playcount);
 
             let artistArt = await Spotify.getArtForType(
